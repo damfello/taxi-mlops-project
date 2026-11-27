@@ -1,0 +1,58 @@
+name: Train NYC Green Taxi Model
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/preprocess.py"
+      - "src/train.py"
+      - "src/prepare_data.py"
+      - "dvc.yaml"
+      - "dvc.lock"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/train-taxi-model.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/preprocess.py"
+      - "src/train.py"
+      - "src/prepare_data.py"
+      - "dvc.yaml"
+      - "dvc.lock"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/train-taxi-model.yml"
+  workflow_dispatch:
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies from lockfile
+        run: uv sync --locked
+
+      - name: Run training pipeline and log to MLflow
+        run: uv run python -m src.train --developer github-actions
+
+      - name: Upload model artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: taxi-model-artifacts
+          path: |
+            models/model.joblib
+            models/model_metadata.json
+          if-no-files-found: error
